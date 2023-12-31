@@ -46,12 +46,38 @@ export class AsteroidDeflectionSystem extends Card implements IActionCard, IProj
   }
 
   public action(player: IPlayer) {
-    const topCard = player.game.projectDeck.drawLegacy(player.game);
-    player.game.log('${0} revealed and discarded ${1}', (b) => b.player(player).card(topCard, {tags: true}));
-    if (topCard.tags.includes(Tag.SPACE)) {
-      player.addResourceTo(this, {qty: 1, log: true});
+    const topCard = player.game.projectDeck.draw(player.game);
+
+    if(topCard === undefined) {
+      this.logEmptyDeck(player);
+    } else {
+      this.logAttempt(player, topCard);
+
+      if (topCard.tags.includes(Tag.SPACE)) {
+        this.success(player);
+      }
+
+      player.game.projectDeck.discard(topCard);
     }
-    player.game.projectDeck.discard(topCard);
+
     return undefined;
+  }
+
+  private logAttempt(player: IPlayer, drawnCard: IProjectCard) {
+    player.game.log(
+      '${0} revealed and discarded ${1}',
+      (b) => b.player(player).card(drawnCard, {tags: true}),
+    );
+  }
+
+  private logEmptyDeck(player: IPlayer) {
+    player.game.log(
+      '${0} could not reveal a card from the deck as the deck is empty',
+      (b) => b.player(player),
+    );
+  }
+
+  private success(player: IPlayer) {
+    player.addResourceTo(this, {qty: 1, log: true});
   }
 }
