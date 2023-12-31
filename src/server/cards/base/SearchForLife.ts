@@ -49,17 +49,44 @@ export class SearchForLife extends Card implements IActionCard, IProjectCard {
   }
   public action(player: IPlayer) {
     player.game.defer(new SelectPaymentDeferred(player, 1, {title: TITLES.payForCardAction(this.name)}))
-      .andThen(() => {
-        const topCard = player.game.projectDeck.drawLegacy(player.game);
-        player.game.log('${0} revealed and discarded ${1}', (b) => b.player(player).card(topCard, {tags: true}));
-        if (topCard.tags.includes(Tag.MICROBE)) {
-          player.addResourceTo(this, 1);
-          player.game.log('${0} found life!', (b) => b.player(player));
-        }
-
-        player.game.projectDeck.discard(topCard);
-      });
+      .andThen(() => this.revealCard(player));
 
     return undefined;
+  }
+
+  private revealCard(player: IPlayer) {
+    const topCard = player.game.projectDeck.draw(player.game);
+
+    if(topCard === undefined) {
+      this.logEmptyDeck(player);
+    } else {
+      this.logAttempt(player, topCard)
+
+      if (topCard.tags.includes(Tag.MICROBE)) {
+        this.success(player);
+      }
+
+      player.game.projectDeck.discard(topCard);
+    }
+  }
+
+  private logAttempt(player: IPlayer, drawnCard: IProjectCard) {
+    player.game.log(
+      '${0} revealed and discarded ${1}',
+      (b) => b.player(player).card(drawnCard, {tags: true}),
+    );
+  }
+
+  private logEmptyDeck(player: IPlayer) {
+    player.game.log(
+      '${0} could not reveal a card from the deck as the deck is empty',
+      (b) => b.player(player),
+    );
+  }
+
+  private success(player: IPlayer) {
+    player.addResourceTo(this, 1);
+
+    player.game.log('${0} found life!', (b) => b.player(player));
   }
 }
